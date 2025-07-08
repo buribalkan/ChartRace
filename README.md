@@ -3,7 +3,6 @@
 📊 **Dynamic data visualizations** are no longer reserved for massive frameworks or D3 experts. In this tutorial, I’ll walk you through building a **fully animated chart race** — entirely in **HTML, SVG, and vanilla JavaScript** — with cool features like live rankings, emojis, tooltips, flashing leaders, and more.
 
 > ✅ No frameworks 
-> ✅ No D3 
 > ✅ No canvas 
 > ✅ 100% SVG + JavaScript
 
@@ -21,7 +20,7 @@ A real-time animated **bar chart race** where:
 - You can **pause/resume** the race ⏯️ 
 - Hovering shows **tooltips** with extra info 🧠 
 
-> All in under 150 lines of code. Let’s go!
+> Let’s go!
 
 ---
 
