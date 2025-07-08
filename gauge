@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SVG Sinusoidal Waves</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 20px;
+      font-family: 'Roboto', sans-serif;
+      font-size: 11px;
+    }
+    .settings {
+      display: none;
+        /*flex*/
+      flex-direction: column;
+      gap: 10px;
+      border-style: outset;
+      border-width: 2px;
+      background-color: rgb(238, 238, 238);
+      padding: 10px;
+    }
+    input[type='number'] {
+      width: 60px;
+    }
+    #needle {
+      transition: transform 1s ease-in-out;
+    }
+  </style>
+</head>
+<body>
+  <svg width="800" height="800">
+    <g transform="translate(75, 40)">
+      <circle id="movingCircle" cx="91" cy="68" r="80" fill="#2f2f2f" stroke="#2f2f2f" stroke-width="2" />
+      <circle id="movingCircle" cx="91" cy="68" r="61" fill="none" stroke="black" stroke-width="1" />
+      <circle id="rotorCircle" cx="91" cy="68" r="26" fill='#2f2f2f' )" stroke="#2f2f2f" stroke-width="3" />
+      <circle id="rotorCircle" cx="91" cy="68" r="39" fill="none" stroke="#de5750" stroke-width="14" />
+      <circle id="rotorCircle" cx="91" cy="68" r="46" fill="none" stroke="black" stroke-width="1" />
+      <circle id="rotorCircle" cx="91" cy="68" r="32" fill="none" stroke="black" stroke-width="1" />
+      <circle id="rotorCircleX" cx="91" cy="68" r="25" fill="none" stroke="black" stroke-width="1" />
+      <g id="needle">
+        <circle id="rotorCircleX" cx="91" cy="68" r="6" fill="none" stroke="black" stroke-width="1" />
+        <line x1="91" y1="68" x2="91" y2="-11" class="lineY" stroke="#ae9e99" stroke-width="0.5" />
+        <circle id="rotorCircleX" cx="91" cy="68" r="5" fill="#ae9e99" stroke="#ae9e99" stroke-width="1" />
+
+        <circle id="rotorCircleX" cx="91" cy="68" r="2" fill="#2f2f2f" stroke="#2f2f2f" stroke-width="1" />
+        <circle id="rotorCircleX" cx="91" cy="68" r="1" fill="none" stroke="#e2e0e6" stroke-width="0.2" />
+      </g>
+      <!-- Tick marks group -->
+      <g id="tickMarks"></g>
+    </g>
+  </svg>
+  <div class="settings">
+    <p style="color: tomato;"> SETTINGS:</p>
+    <label>
+      Major Ticks-------------------:&nbsp;
+      <input type="number" id="numMajorTicks" value="11" min="1">
+    </label>
+    <label>
+      Minor Ticks per Major Tick:&nbsp;
+      <input type="number" id="numMinorTicks" value="9" min="0">
+    </label>
+    <label>
+      Major Tick Length-----------:&nbsp;
+      <input type="number" id="majorTickLength" value="17" min="1">
+    </label>
+    <label>
+      Minor Tick Length-----------:&nbsp;
+      <input type="number" id="minorTickLength" value="10" min="1">
+    </label>
+    <label>
+      Tick Distance from Circle---:
+      <input type="number" id="tickDistance" value="1" min="0">
+    </label>
+    <label>
+      Start Angle--------------------:&nbsp;
+      <input type="number" id="startAngle" value="-225">
+    </label>
+    <label>
+      End Angle---------------------:&nbsp;
+      <input type="number" id="endAngle" value="45">
+    </label>
+    <label>
+      Gauge Min---------------------:&nbsp;
+      <input type="number" id="gaugeMin" value="0">
+    </label>
+    <label>
+      Gauge Max--------------------:&nbsp;
+      <input type="number" id="gaugeMax" value="100">
+    </label>
+    <label>
+      Rotate Needle-----------------:&nbsp;
+      <input type="range" id="rotationSlider" min="-135" max="135" value="0">
+    </label>
+    <button id="saveSettings">Save Settings</button>
+    <input type="file" id="loadSettings" accept=".json">
+  </div>
+  <script>
+    const centerX = 91;
+    const centerY = 68;
+    const radius = 80;
+    const tickColor = '#ae9e99';
+    const tickWidth = 0.5;
+    function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
+      const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
+      return {
+        x: centerX + (radius * Math.cos(angleInRadians)),
+        y: centerY + (radius * Math.sin(angleInRadians))
+      };
+    }
+    function describeArc(x, y, radius, startAngle, endAngle) {
+      const start = polarToCartesian(x, y, radius, endAngle);
+      const end = polarToCartesian(x, y, radius, startAngle);
+      const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+
+      return [
+        "M", start.x, start.y,
+        "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y
+      ].join(" ");
+    }
+    function getSettings() {
+      return {
+        numMajorTicks: parseInt(document.getElementById('numMajorTicks').value),
+        numMinorTicks: parseInt(document.getElementById('numMinorTicks').value),
+        majorTickLength: parseInt(document.getElementById('majorTickLength').value),
+        minorTickLength: parseInt(document.getElementById('minorTickLength').value),
+        tickDistance: parseInt(document.getElementById('tickDistance').value),
+        startAngle: parseFloat(document.getElementById('startAngle').value),
+        endAngle: parseFloat(document.getElementById('endAngle').value),
+        gaugeMin: parseFloat(document.getElementById('gaugeMin').value),
+        gaugeMax: parseFloat(document.getElementById('gaugeMax').value)
+      };
+    }
+    function drawTicks() {
+      // Clear existing tick marks and boundary arc
+      const tickMarks = document.getElementById('tickMarks');
+      while (tickMarks.lastChild) {
+        tickMarks.removeChild(tickMarks.lastChild);
+      }
+      // Get settings from inputs
+      const numMajorTicks = parseInt(document.getElementById('numMajorTicks').value);
+      const numMinorTicks = parseInt(document.getElementById('numMinorTicks').value);
+      const majorTickLength = parseInt(document.getElementById('majorTickLength').value);
+      const minorTickLength = parseInt(document.getElementById('minorTickLength').value);
+      const tickDistance = parseInt(document.getElementById('tickDistance').value);
+      const startAngle = parseFloat(document.getElementById('startAngle').value);
+      const endAngle = parseFloat(document.getElementById('endAngle').value);
+      const gaugeMin = parseFloat(document.getElementById('gaugeMin').value);
+      const gaugeMax = parseFloat(document.getElementById('gaugeMax').value);
+      // Adjust the boundary arc angles to lag the tick marks by 90 degrees
+      const boundaryStartAngle = startAngle + 90;
+      const boundaryEndAngle = endAngle + 90;
+      // Draw the boundary arc
+      const boundaryArc = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const arcPath = describeArc(centerX, centerY, radius - tickDistance, boundaryStartAngle, boundaryEndAngle);
+      boundaryArc.setAttribute('d', arcPath);
+      boundaryArc.setAttribute('stroke', tickColor);
+      boundaryArc.setAttribute('stroke-width', 0.5);
+      boundaryArc.setAttribute('fill', 'none');
+      tickMarks.appendChild(boundaryArc);
+      // Convert angles from degrees to radians
+      const startAngleRad = (startAngle * Math.PI) / 180;
+      const endAngleRad = (endAngle * Math.PI) / 180;
+      // Calculate the total number of tick marks (major and minor combined)
+      const totalTicks = (numMajorTicks - 1) * (numMinorTicks + 1) + 1;
+      const angleStep = (endAngleRad - startAngleRad) / (totalTicks - 1);
+      // Draw tick marks
+      for (let i = 0; i < totalTicks; i++) {
+        const angle = startAngleRad + i * angleStep;
+        const x1 = centerX + (radius - tickDistance) * Math.cos(angle);
+        const y1 = centerY + (radius - tickDistance) * Math.sin(angle);
+        const isMajor = i % (numMinorTicks + 1) === 0;
+        const tickLength = isMajor ? majorTickLength : minorTickLength;
+        const x2 = centerX + (radius - tickDistance - tickLength) * Math.cos(angle);
+        const y2 = centerY + (radius - tickDistance - tickLength) * Math.sin(angle);
+        const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        tick.setAttribute('x1', x1);
+        tick.setAttribute('y1', y1);
+        tick.setAttribute('x2', x2);
+        tick.setAttribute('y2', y2);
+        tick.setAttribute('stroke', tickColor);
+        tick.setAttribute('stroke-width', tickWidth);
+        tickMarks.appendChild(tick);
+        // Add gauge labels for major ticks
+        if (isMajor) {
+          const labelAngle = angle + Math.PI / 2; // Rotate the labels upright
+          const labelX = centerX + (radius - tickDistance - tickLength - 10) * Math.cos(angle);
+          const labelY = centerY + (radius - tickDistance - tickLength - 10) * Math.sin(angle);
+
+          const labelValue = Math.round(gaugeMin + (i / (totalTicks - 1)) * (gaugeMax - gaugeMin));
+          const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          label.setAttribute('x', labelX);
+          label.setAttribute('y', labelY);
+          label.setAttribute('fill', '#ae9e99');
+          label.setAttribute('font-size', '11');
+          label.setAttribute('text-anchor', 'middle');
+          label.setAttribute('alignment-baseline', 'middle');
+          label.setAttribute('font-family', 'Roboto, sans-serif'); // Set the font here
+          label.setAttribute('transform', `rotate(${labelAngle * (180 / Math.PI)}, ${labelX}, ${labelY})`);
+          label.textContent = labelValue;
+          tickMarks.appendChild(label);
+        }
+      }
+    }
+    drawTicks();
+    // Add event listeners to update the tick marks on input change
+    document.querySelectorAll('.settings input').forEach(input => {
+      input.addEventListener('input', drawTicks);
+    });
+    function getRandomAngle(start, end) {
+      return Math.random() * (end - start) + start;
+    }
+    function rotateNeedleRandomly() {
+      const startAngle = parseFloat(document.getElementById('startAngle').value);
+      const endAngle = parseFloat(document.getElementById('endAngle').value);
+      const randomAngle = getRandomAngle(startAngle + 90, endAngle + 90); // Adjust for needle offset
+      needle.setAttribute('transform', `rotate(${randomAngle}, 91, 68)`);
+    }
+    setInterval(rotateNeedleRandomly, 1000);
+  </script>
+</body>
+</html>
