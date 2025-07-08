@@ -37,11 +37,13 @@ We create a chart area using `<svg>` and populate it with:
 
 ```html
 <svg width="740" height="260" id="chart"></svg>
+```html
+
 Each bar is positioned with vertical spacing and updated every few seconds.
 
 🎨 Step 2: Dynamic Colors Based on Value
 Use color coding to give visual feedback:
-
+```html
 function getColorByValue(val) {
 
   if (val >= 100) return "#E53935"; // red
@@ -51,7 +53,7 @@ function getColorByValue(val) {
   return "#1E88E5";                 // blue
 
 }
-
+```html
 Transitions are handled by CSS (transition: width 1s, fill 1s).
 
 🔁 Step 3: Real-Time Data Simulation
