@@ -135,7 +135,7 @@ bar.classList.toggle("glow", i === 0);
 
 ### 📋 Feature Summary
 
-Feature Status
+#### Feature Status
 
 ✅ SVG-based chart structure
 ✅ Real-time data updates
