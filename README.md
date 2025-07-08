@@ -110,7 +110,7 @@ function setTooltip(element, text) {
 ```
 This gives users extra context without cluttering the UI.
 
-###🔥 Step 6: Flashing Gold Highlight for the Leader
+### 🔥 Step 6: Flashing Gold Highlight for the Leader
 
 We use simple CSS animation to add a glow effect:
 ```css
@@ -133,7 +133,7 @@ Apply .glow to the top country each round:
 bar.classList.toggle("glow", i === 0);
 ```
 
-###📋 Feature Summary
+### 📋 Feature Summary
 
 Feature Status
 
@@ -145,7 +145,7 @@ Feature Status
 ✅  Tooltips on hover
 ✅ Gold glow for #1 rank
 
-###⚙️ Why Use SVG?
+### ⚙️ Why Use SVG?
 SVG is:
 Lightweight
 Easily styled with CSS
