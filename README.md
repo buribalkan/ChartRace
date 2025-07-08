@@ -1,6 +1,7 @@
 # 🎬 How to Make a Live Chart Race in Pure SVG (No Libraries!)
 
-📊 **Dynamic data visualizations** are no longer reserved for massive frameworks or D3 experts. In this tutorial, I’ll walk you through building a **fully animated chart race** — entirely in **HTML, SVG, and vanilla JavaScript** — with cool features like live rankings, emojis, tooltips, flashing leaders, and more.
+📊 **Dynamic data visualizations** are no longer reserved for massive frameworks. 
+**fully animated chart race** — entirely in **HTML, SVG, and vanilla JavaScript** — with cool features like live rankings, emojis, tooltips, flashing leaders, and more.
 
 > ✅ No frameworks 
 > ✅ No canvas 
