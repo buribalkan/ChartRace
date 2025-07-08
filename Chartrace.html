@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<title>Real-Time Country Race with Leaderboard</title>
+	<style>
+	body {
+		background: #111;
+		color: white;
+		font-family: sans-serif;
+		padding: 20px;
+		display: flex;
+		flex-direction: row;
+		gap: 30px;
+	}
+	
+	#main {
+		flex: 1;
+	}
+	
+	#leaderboard {
+		width: 220px;
+		padding: 10px;
+		background: #222;
+		border: 1px solid #444;
+		border-radius: 8px;
+	}
+	
+	#leaderboard h3 {
+		margin: 0 0 10px;
+		font-size: 24px;
+		color: #ccc;
+	}
+	
+	.leader-row {
+		font-size: 18px;
+		margin: 4px 0;
+		display: flex;
+		justify-content: space-between;
+	}
+	
+	.rank {
+		width: 20px;
+		text-align: right;
+		color: gold;
+	}
+	
+	.name {
+		flex: 1;
+		text-align: left;
+		color: white;
+		margin-left: 6px;
+	}
+	
+	.score {
+		color: #7cf;
+		font-weight: bold;
+	}
+	
+	button {
+		margin-top: 8px;
+		padding: 8px 16px;
+		background: #444;
+		border: none;
+		color: white;
+		font-weight: bold;
+		border-radius: 5px;
+		cursor: pointer;
+	}
+	
+	svg {
+		background: #222;
+		border-radius: 8px;
+		border: 1px solid #444;
+	}
+	
+	rect {
+		rx: 5;
+		ry: 5;
+		transition: width 1s, y 1s, fill 1s;
+	}
+	
+	.value {
+		font-size: 16px;
+		font-weight: bold;
+		dominant-baseline: middle;
+		text-anchor: start;
+		transition: y 1s;
+	}
+	
+	image.flag {
+		transition: y 1s;
+		clip-path: circle(50%);
+	}
+	
+	.label {
+		font-size: 16px;
+		fill: white;
+		dominant-baseline: middle;
+		transition: y 1s;
+	}
+	
+	.gridline {
+		stroke: #555;
+		stroke-width: 1;
+		shape-rendering: crispEdges;
+	}
+	
+	.gridtext {
+		font-size: 12px;
+		fill: #888;
+	}
+	
+	.glow {
+		animation: glowPulse 1.2s infinite alternate;
+	}
+	
+	@keyframes glowPulse {
+		from {
+			filter: drop-shadow(0 0 4px gold);
+		}
+		to {
+			filter: drop-shadow(0 0 10px gold);
+		}
+	}
+	</style>
+</head>
+
+<body>
+	<div id="main">
+		<h2>🏁 Real-Time Country Race</h2>
+		<div id="frameCounter">Round 1</div>
+		<button id="toggleBtn">⏸ Pause</button>
+		<svg width="740" height="260" id="chart"></svg>
+	</div>
+	<div id="leaderboard">
+		<h3>🏆 Leaderboard</h3>
+		<div id="leaderContent"></div>
+	</div>
+	<script>
+	const flags = {
+		USA: "https://flagcdn.com/w40/us.png",
+		China: "https://flagcdn.com/w40/cn.png",
+		Brazil: "https://flagcdn.com/w40/br.png"
+	};
+	const svg = document.getElementById("chart");
+	const toggleBtn = document.getElementById("toggleBtn");
+	const frameDisplay = document.getElementById("frameCounter");
+	const leaderboardDiv = document.getElementById("leaderContent");
+	const barHeight = 40;
+	const barSpacing = 15;
+	const barStartX = 140;
+	const chartHeight = 220;
+	const maxValue = 150;
+	const countries = Object.keys(flags);
+	const values = {
+		USA: 50,
+		China: 50,
+		Brazil: 50
+	}; // Start midpoint
+	let round = 1;
+	let intervalId = null;
+	let isPaused = false;
+	// Grid
+	for(let x = 0; x <= maxValue; x += 25) {
+		const xPos = barStartX + x * 5;
+		const gridLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+		gridLine.setAttribute("x1", xPos);
+		gridLine.setAttribute("y1", 0);
+		gridLine.setAttribute("x2", xPos);
+		gridLine.setAttribute("y2", chartHeight);
+		gridLine.setAttribute("class", "gridline");
+		svg.appendChild(gridLine);
+		const gridText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+		gridText.setAttribute("x", xPos);
+		gridText.setAttribute("y", chartHeight - 5);
+		gridText.setAttribute("class", "gridtext");
+		gridText.setAttribute("text-anchor", "middle");
+		gridText.textContent = x;
+		svg.appendChild(gridText);
+	}
+	// Visual elements
+	countries.forEach(country => {
+		const bar = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+		bar.setAttribute("id", `bar-${country}`);
+		bar.setAttribute("x", barStartX);
+		bar.setAttribute("height", barHeight);
+		svg.appendChild(bar);
+		const flag = document.createElementNS("http://www.w3.org/2000/svg", "image");
+		flag.setAttribute("id", `flag-${country}`);
+		flag.setAttribute("href", flags[country]);
+		flag.setAttribute("width", 32);
+		flag.setAttribute("height", 32);
+		flag.setAttribute("class", "flag");
+		flag.setAttribute("x", 10);
+		svg.appendChild(flag);
+		const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+		label.setAttribute("id", `label-${country}`);
+		label.setAttribute("class", "label");
+		label.setAttribute("x", 50);
+		label.textContent = country;
+		svg.appendChild(label);
+		const value = document.createElementNS("http://www.w3.org/2000/svg", "text");
+		value.setAttribute("id", `value-${country}`);
+		value.setAttribute("class", "value");
+		value.setAttribute("fill", "white");
+		svg.appendChild(value);
+	});
+
+	function getColorByValue(val) {
+		if(val >= 100) return "#E53935"; // red
+		if(val >= 50) return "#43A047"; // green
+		return "#1E88E5"; // blue
+	}
+
+	function generateNextData() {
+		countries.forEach(c => {
+			const delta = Math.floor(Math.random() * 21) - 10; // –10 to +10
+			values[c] = Math.max(0, Math.min(maxValue, values[c] + delta));
+		});
+	}
+
+	function updateLeaderboard(sorted) {
+		leaderboardDiv.innerHTML = '';
+		sorted.forEach(([country, value], idx) => {
+			leaderboardDiv.innerHTML += `
+        <div class="leader-row">
+          <span class="rank">#${idx + 1}</span>
+          <span class="name">${country}</span>
+          <span class="score">${value}</span>
+        </div>`;
+		});
+	}
+
+	function renderFrame() {
+		generateNextData();
+		const sorted = Object.entries(values).sort((a, b) => b[1] - a[1]);
+		sorted.forEach(([country, value], i) => {
+			const y = i * (barHeight + barSpacing) + 10;
+			const width = value * 5;
+			const tooltipText = `${country}\nValue: ${value}\nRound: ${round}`;
+			const bar = document.getElementById(`bar-${country}`);
+			bar.setAttribute("y", y);
+			bar.setAttribute("width", width);
+			bar.setAttribute("fill", getColorByValue(value));
+			setTooltip(bar, tooltipText);
+			bar.classList.toggle("glow", i === 0); // glow only for rank 1
+			const flag = document.getElementById(`flag-${country}`);
+			flag.setAttribute("y", y + 4);
+			setTooltip(flag, tooltipText);
+			flag.classList.toggle("glow", i === 0);
+			const label = document.getElementById(`label-${country}`);
+			label.setAttribute("y", y + barHeight / 2);
+			setTooltip(label, tooltipText);
+			label.classList.toggle("glow", i === 0);
+			const valueText = document.getElementById(`value-${country}`);
+			valueText.setAttribute("x", barStartX + width + 10);
+			valueText.setAttribute("y", y + barHeight / 2);
+			valueText.textContent = value;
+			setTooltip(valueText, tooltipText);
+			valueText.classList.toggle("glow", i === 0);
+		});
+		frameDisplay.textContent = `Round ${round++}`;
+		updateLeaderboard(sorted);
+	}
+	// Helper function to update or add <title>
+	function setTooltip(element, text) {
+		let title = element.querySelector("title");
+		if(!title) {
+			title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+			element.appendChild(title);
+		}
+		title.textContent = text;
+	}
+
+	function startRace() {
+		intervalId = setInterval(renderFrame, 2000);
+	}
+
+	function pauseRace() {
+		clearInterval(intervalId);
+	}
+	toggleBtn.addEventListener("click", () => {
+		if(isPaused) {
+			startRace();
+			toggleBtn.textContent = "⏸ Pause";
+		} else {
+			pauseRace();
+			toggleBtn.textContent = "▶️ Resume";
+		}
+		isPaused = !isPaused;
+	});
+	renderFrame();
+	startRace();
+	</script>
+</body>
+
+</html>
